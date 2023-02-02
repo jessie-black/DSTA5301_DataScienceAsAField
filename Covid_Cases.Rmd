@@ -1,0 +1,51 @@
+---
+title: "Covid-19-DataSet"
+author: "Jessie Black"
+date: "2023-02-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Covid-19
+
+## Libraries
+```{r lib, echo=FALSE}
+library(tidyverse)
+```
+
+## Data Collection
+
+Record & combine URLs for desired .csv files.
+```{r data, echo=TRUE}
+url_in <- "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/"
+file_names <- c("time_series_covid19_confirmed_US.csv", "time_series_covid19_confirmed_global.csv", "time_series_covid19_deaths_US.csv", "time_series_covid19_deaths_global.csv", "time_series_covid19_recovered_global.csv")
+urls <- str_c(url_in, file_names)
+```
+
+Read in data sets.
+```{r import_data, message=FALSE}
+US_cases <- read_csv(urls[1])
+global_cases <- read_csv(urls[2])
+US_deaths <- read_csv(urls[3])
+global_deaths <- read_csv(urls[4])
+```
+
+Tidy datasets by putting each variable in its own column, and disregarding Lat & Lon. Renaming region & state to be easier to use in R.
+```{r tidy_global_data}
+global_cases <- global_cases %>% 
+  pivot_longer(cols= -c('Province/State', 'Country/Region', Lat, Long), # All column headings except for these
+                                              names_to = "date",        # will now go as observations under new column "date"
+                                              values_to = "cases") %>%  # and their respective values will now go under the column "cases"
+  select(-c(Lat,Long))    # Lat and Long will be excluded
+```
+                                              
+```{r tidy_global_data}  
+global_deaths <- global_deaths %>%  # Same adjustment made to global_deaths data
+  pivot_longer(cols= -c('Province/State', 'Country/Region', Lat, Long), 
+                                              names_to = "date",       
+                                              values_to = "cases") %>%  
+  select(-c(Lat,Long))    
+```
