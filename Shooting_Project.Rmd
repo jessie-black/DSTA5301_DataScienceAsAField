@@ -1,7 +1,7 @@
 ---
 title: "Shooting Project"
 author: "Jessie Black"
-date: "2023-02-02"
+date: "2023-02-08"
 output: html_document
 ---
 
@@ -12,10 +12,86 @@ knitr::opts_chunk$set(echo = TRUE)
 # Shooting Project
 ## Dataset
 
-Describe the dataset & import it in reducible manner
+The Historic NYPD Shooting Incident Data lists all shooting incidences in NYC from 2006 through the end of the most recent calendar year (2022 at time of publishing). 
 
-```{r cars}
-summary(cars)
+Every record represents a single shooting incident and includes the following: 
+
+- location event occurred
+- time event occurred
+- suspect information
+- victim demographics
+
+
+## Libraries Used
+```{r lib}
+library(tidyverse)
+library(lubridate)
+```
+
+## Data Collection and Inspection
+
+```{r import}
+url = "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv"
+shooting_data <- read_csv(url)
+summary(shooting_data)
+head(shooting_data)
+```
+Initial observations of variables:
+
+- INCIDENT_KEY: numeric value (unique identifier)
+- OCCUR_DATE: character value in form MM/DD/YYYY -- should be converted to date.
+- OCCUR_TIME: numeric in form hh:mm:ss
+- BORO: character value
+- PRECINCT: numeric value
+- JURISDICTION_CODE: numeric value 
+- LOCATION_DESC: Character value
+- STATISTICAL_MURDER_FLAG: logical
+- PERP_AGE_GROUP: character. NA values numerous, presumably due to unknown perpetrator.
+- PERP_SEX: character -- should be a factor. NA values numerous, presumably due to unknown perpetrator.
+- PERP_RACE: character. NA values numerous, presumably due to unknown perpetrator.
+- VIC_AGE_GROUP: character
+- VIC_SEX: character - should be a factor
+- VIC_RACE: character
+- X_COORD_CD: numeric
+- Y_COORD_CD: numeric
+- Latitude: numeric
+- Longitude: numeric
+- Lon_Lat: character
+
+###Tidying Data
+
+1. Convert PERP_SEX, PERP_RACE, VIC_RACE and VIC_SEX to factors
+2. Convert OCCUR_DATE to date format
+3. Remove unnecessary columns for our analysis (x & y coordinates, latitude, longitude, precinct, jurisdiction code)
+
+```{r tidy_data}
+shooting_data <- shooting_data %>% 
+  mutate(OCCUR_DATE=mdy(OCCUR_DATE), PERP_SEX = as.factor(PERP_SEX), 
+         VIC_SEX = as.factor(VIC_SEX), PERP_RACE = as.factor(PERP_RACE),
+         VIC_RACE = as.factor(VIC_RACE)) %>%
+  select(-c(X_COORD_CD, Y_COORD_CD, Latitude, Longitude, Lon_Lat, PRECINCT, JURISDICTION_CODE))
+summary(shooting_data)
+head(shooting_data)
 ```
 
 
+TODO: Clean up dataset:
+TODO: - Change appropriate variables to factors
+TODO: - Get rid of unneeded colums
+
+Updated summary of data:
+```{r data_summarize}
+
+```
+TODO: Show summary of data (make sure no data is missing)
+Plan for missing data:
+Add "Unknown" for all N/A in PERP_AGE_GROUP, PERP_SEX, and PERP_RACE
+
+TODO: If any data is missing, describe how you plan to handle it.
+
+## VISUALIZATION AND ANALYSIS
+TODO: add at least 2 diff visualizations and some analysis
+TODO: Consider any additional questions this raises to investigate
+
+## ADD BIAS IDENTIFICATION
+TODO: Write conclusion, including any possible bias sources. Identify personal bias & how mitigating.
