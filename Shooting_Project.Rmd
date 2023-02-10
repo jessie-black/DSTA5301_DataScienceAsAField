@@ -60,30 +60,41 @@ Initial observations of variables:
 
 ###Tidying Data
 
-1. Convert PERP_SEX, PERP_RACE, VIC_RACE and VIC_SEX to factors
+1. Convert VIC_RACE and VIC_SEX to factors (wait to do the same for PERP_ after addressing NA values)
 2. Convert OCCUR_DATE to date format
 3. Remove unnecessary columns for our analysis (x & y coordinates, latitude, longitude, precinct, jurisdiction code)
 
 ```{r tidy_data}
 shooting_data <- shooting_data %>% 
-  mutate(OCCUR_DATE=mdy(OCCUR_DATE), PERP_SEX = as.factor(PERP_SEX), 
-         VIC_SEX = as.factor(VIC_SEX), PERP_RACE = as.factor(PERP_RACE),
-         VIC_RACE = as.factor(VIC_RACE)) %>%
+  # Convert victim's sex and race columns to factors, convert date from number to date
+  mutate(OCCUR_DATE=mdy(OCCUR_DATE),VIC_SEX = as.factor(VIC_SEX),VIC_RACE = as.factor(VIC_RACE)) %>%
+  # Exclude the following columns from final data set
   select(-c(X_COORD_CD, Y_COORD_CD, Latitude, Longitude, Lon_Lat, PRECINCT, JURISDICTION_CODE))
 summary(shooting_data)
 head(shooting_data)
 ```
 
+### Missing Values
+Displaying missing values for all remaining columns:
+```{r find_missing_values}
+data(shooting_data)
 
-TODO: Clean up dataset:
-TODO: - Change appropriate variables to factors
-TODO: - Get rid of unneeded colums
-
-Updated summary of data:
-```{r data_summarize}
-
+col_na <- colSums(is.na(shooting_data))
+data.frame(na_count = col_na)
 ```
-TODO: Show summary of data (make sure no data is missing)
+It makes sense for similar (large) amounts of NA values to exist for PERP_AGE_GROUP, PERP_SEX, and PERP_RACE -- presumably, these were incidents where the perpetrator was unidentified. There are slightly more observations with a missing PERP_AGE_GROUP than for PERP_SEX and PERP_RACE (which both had the same value), presumably because it is easier for a victim to guess at an attacker's sex and race than their age range if they were not apprehended. We could change these to "unknown" so that they may qualify as a separate factor.
+There are also a large amount of values missing for LOCATION_DESC, which is more confusing, as this is more likely to be identified. The simplest explanation is that it is simply not considered a vital aspect of an incident report and is more frequently left out. As over 50% of the observations have NA as LOCATION_DESC, we could shift it to "unknown" but in this case I will instead drop the column to remove the risk of skewed data.
+``` {r final_tidy}
+shooting_data <- shooting_data %>% 
+  # Convert any NA values to "unknown" in following three columns
+  mutate(PERP_SEX = as.factor(ifelse(is.na(PERP_SEX), "unknown", PERP_SEX)), 
+         PERP_RACE = as.factor(ifelse(is.na(PERP_RACE), "unknown", PERP_RACE)),
+         PERP_AGE_GROUP = ifelse(is.na(PERP_AGE_GROUP), "unknown", PERP_AGE_GROUP)) %>%
+  # Exclude LOCATION_DESC column from final data set
+  select(-LOCATION_DESC)
+summary(shooting_data)
+head(shooting_data)
+```
 Plan for missing data:
 Add "Unknown" for all N/A in PERP_AGE_GROUP, PERP_SEX, and PERP_RACE
 
