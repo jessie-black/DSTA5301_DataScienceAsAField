@@ -121,3 +121,36 @@ global <- global %>%
   select(Province_State, Country_Region, date, cases,
          deaths, Population, Combined_Key)
 ```
+
+
+## Visualizing, Analyzing & Modelling Data
+Group Covid cases by location & summarize.
+```{r group_cases}
+US_by_state <- US %>%
+  group_by(Province_State, Country_Region, date) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths)) %>%
+  select(Province_State, Country_Region, date, cases, deaths) %>%
+  ungroup()
+```
+
+```{r us_totals}
+US_totals <- US_by_state %>%
+  group_by(Country_Region, date) %>%
+  summarize(cases = sum(cases), deaths = sum(deaths)) %>%
+  select(Country_Region, date, cases, deaths) %>%
+  ungroup()
+```
+
+Visualize results
+```{r visualization_total_cases}
+US_totals %>%
+  filter(cases > 0) %>%
+  ggplot(aes(x = date, y = cases)) + 
+  geom_line(aes(color = "cases")) + 
+  geom_point(aes(color = "cases")) + 
+  geom_line(aes(y = deaths, color = "deaths")) + 
+  geom_point(aes(y = deaths, color = "deaths")) + 
+  scale_y_log10() + 
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) + 
+  labs(title = "COVID19 in US", y = NULL)
+```
