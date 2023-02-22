@@ -94,8 +94,48 @@ shooting_data <- shooting_data %>%
 ```
 
 ## VISUALIZATION AND ANALYSIS
-TODO: add at least 2 diff visualizations and some analysis
-TODO: Consider any additional questions this raises to investigate
+### Understanding the Data
+To start, I want to see the relationship between location and the total number of incidents. I will use BORO and COUNT(INCIDENT_KEY) for this.
+``` {r incidents_by_boro}
+# Create new data frame with just the borough name and total number of incidents.
+numbers_by_boro <- as.data.frame(table(shooting_data$BORO)) 
+names(numbers_by_boro)[c(1,2)] <- c("Boro", "Total")
+# Plot the relationship
+ggplot(data = numbers_by_boro, aes(Boro, Total)) +
+       geom_point() + 
+       labs(title = "NYC Shooting Incidents by Borough",
+            x = "Borough",
+            y = "Total incidents")
+```
+
+According to this graph, the most incidents occurred in Brooklyn and the Bronx, followed at a distance by Queens, Manhatten, and in the lowest set of incidents, Staten Island. 
+
+Are Brooklyn and the Bronx more dangerous? Or are they simply far more populous? The original data did not include population figures for the five boroughs, so I will need to track this down to analyze further.
+
+Per the data available from https://www.citypopulation.de/en/usa/newyorkcity/, as of the 2021 census, the boroughs have the following population:
+```{r borough_population}
+# Add population data from 2021 census
+Pop <- c(1424948, 2641052, 1576876, 2331143, 493494)
+# Include column for deaths relative to population
+numbers_by_boro <- numbers_by_boro %>%
+  mutate(Population = Pop, Shootings_Per_Thousand = Total*1000/Population)
+# View new graph
+ggplot(data = numbers_by_boro, aes(Boro, Shootings_Per_Thousand)) +
+       geom_point() + 
+       labs(title = "NYC Shooting Incidents by Borough",
+            x = "Borough",
+            y = "Shooting incidents per 1000 people")
+```
+With this new information, we can see that Bronx and Brooklyn do indeed have the most incidents by population but it is the Bronx rather than Brooklyn with the highest per-capita number of incidents. And due to its low population, Staten Island is pretty similar to Queens in terms of per-capita incidents.
+
+## Further Questions
+For future examination of this data set, here are the questions I have:
+1. How do age, race, sex, education, and poverty play roles? 
+- Do areas with higher levels of shooting have a high predominance of shootings by (and against) young males in poorer areas who may have less education? If so, it could suggest gang involvement.
+- In contrast, in areas where victims tend to be wealthier and/or better educated, it may suggest a motive related to robbery.
+- Clustered incidents where victims are disproportionately young (school age) suggests it may be a school shooting, whereas disparate cases of adult female victims may point more towards domestic violence issues.
+2. How was the data collected? Why was there a gap in location description?
+- As hypothesized earlier, the officers recording data may have considered location description unimportant but it certainly could not have been unknown in as many incidents as the N/A entry suggests. This is because those same incidents in general did NOT lack data on latitude and longitude, so clearly the location of the incident was known upon reporting.
 
 ## ADD BIAS IDENTIFICATION
 TODO: Write conclusion, including any possible bias sources. Identify personal bias & how mitigating.
