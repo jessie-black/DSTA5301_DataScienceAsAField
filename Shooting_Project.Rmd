@@ -1,8 +1,9 @@
 ---
 title: "Shooting Project"
-author: "Jessie Black"
 date: "2023-02-08"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -128,8 +129,10 @@ ggplot(data = numbers_by_boro, aes(Boro, Shootings_Per_Thousand)) +
 ```
 With this new information, we can see that Bronx and Brooklyn do indeed have the most incidents by population but it is the Bronx rather than Brooklyn with the highest per-capita number of incidents. And due to its low population, Staten Island is pretty similar to Queens in terms of per-capita incidents.
 
-## Further Questions
+## CONCLUSION
+### FUTURE QUESTIONS
 For future examination of this data set, here are the questions I have:
+
 1. How do age, race, sex, education, and poverty play roles? 
 - Do areas with higher levels of shooting have a high predominance of shootings by (and against) young males in poorer areas who may have less education? If so, it could suggest gang involvement.
 - In contrast, in areas where victims tend to be wealthier and/or better educated, it may suggest a motive related to robbery.
@@ -137,5 +140,9 @@ For future examination of this data set, here are the questions I have:
 2. How was the data collected? Why was there a gap in location description?
 - As hypothesized earlier, the officers recording data may have considered location description unimportant but it certainly could not have been unknown in as many incidents as the N/A entry suggests. This is because those same incidents in general did NOT lack data on latitude and longitude, so clearly the location of the incident was known upon reporting.
 
-## ADD BIAS IDENTIFICATION
-TODO: Write conclusion, including any possible bias sources. Identify personal bias & how mitigating.
+### BIAS IDENTIFICATION
+Potential sources of bias:
+
+1. Personal - as an American who has spent most of my life in urban areas, I assume that the shooting patterns in NYC mirror those in other cities of similar size, hence the future questions pointing to poverty and gang association as likely contributors that could be assessed if the data included education and wealth, though race age and gender can also support or refute this assumption.
+2. Data collection - There is no available information on how the data is collected (or why, for example, location description is missing in so many incidents despite location being known). If the lack of entry is a choice on the part of the reporting officer (rather than lack of knowledge), then the N/A values in race, age, and sex may be biased.
+3. Data treatment - I made the choice to eliminate the factor of location description as it was missing from so many entries, but it is possible that a trend may have been present there that this choice now obfuscates.
