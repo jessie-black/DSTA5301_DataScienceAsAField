@@ -1,6 +1,5 @@
 ---
 title: "Covid 19 DataSet"
-author: "Jessie Black"
 date: "2023-02-02"
 output: html_document
 ---
@@ -15,18 +14,22 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r lib, echo=FALSE}
 library(tidyverse)
 library(lubridate)
+library(ggrepel)
 ```
 
-## Data Collection
+## Dataset
+### About the Data
+This dataset comes from the Johns Hopkins github site collecting information on COVID-19 cases by state and by country.
 
-Record & combine URLs for desired .csv files.
+### Collecting the Raw Data
+The first step is to record & combine URLs for desired .csv files that need to be downloaded.
 ```{r data, echo=TRUE}
 url_in <- "https://github.com/CSSEGISandData/COVID-19/raw/master/csse_covid_19_data/csse_covid_19_time_series/"
 file_names <- c("time_series_covid19_confirmed_US.csv", "time_series_covid19_confirmed_global.csv", "time_series_covid19_deaths_US.csv", "time_series_covid19_deaths_global.csv", "time_series_covid19_recovered_global.csv")
 urls <- str_c(url_in, file_names)
 ```
 
-Read in data sets.
+Next, we can read in the data sets.
 ```{r import_data, message=FALSE}
 US_cases <- read_csv(urls[1])
 global_cases <- read_csv(urls[2])
@@ -34,7 +37,7 @@ US_deaths <- read_csv(urls[3])
 global_deaths <- read_csv(urls[4])
 ```
 
-Tidy datasets by putting each variable in its own column, and disregarding Lat & Lon. Renaming region & state to be easier to use in R.
+The datasets are tidied by putting each variable in its own column, and disregarding Lat & Lon. I also renamed region & state to be easier to use in R.
 ```{r tidy_global_data}
 global_cases <- global_cases %>% 
   pivot_longer(cols= -c('Province/State', 'Country/Region', Lat, Long), # All column headings except for these
@@ -48,7 +51,7 @@ global_deaths <- global_deaths %>%  # Same adjustment made to global_deaths data
   select(-c(Lat,Long))
 ```
 
-Consolidate deaths and cases into single global set
+Deaths and cases per region are consolidated into a single global set
 ```{r combine_global_data}
 global <- global_cases %>% 
   full_join(global_deaths) %>%
@@ -57,21 +60,23 @@ global <- global_cases %>%
   mutate(date = mdy(date))
 ```
 
-Explore new data set
+## Data Exploration
+As the first step in exploring the data, I looked at the summary values by column.
 ``` {r summarize_global_data}
 summary(global)
 ```
-Get rid of observations with 0 cases
+There are observations with zero cases, which do not contribute to our analysis, so these were removed.
 ``` {r remove_negative_cases}
 global <- global %>% filter(cases >0)
 summary(global)
 ```
-Check that upper observation of cases is not a typo
+I then filtered for observations of over 100 million cases to check that upper observations are not due to typos
 ``` {r check_max_cases}
 global %>% filter(cases>100000000)
 ```
+As there are multiple values in this range, it is likely accurate.
 
-Tidy up US cases and US deaths
+Finally, tidying up US cases and US deaths as was already done with global data
 ```{r tidy_US_data}
 US_cases <- US_cases %>%
   pivot_longer(cols = -(UID:Combined_Key),
@@ -90,14 +95,14 @@ US_deaths <- US_deaths %>%
   select(-c(Lat,Long_))
 ```
 
-Combine US data sets
+I then combined US data sets while excluding entries lacking a date.
 ``` {r combine_US_data}
 US <- US_cases %>%
   full_join(US_deaths) %>%
   filter(!is.na(date))
 ```
 
-Make combined key for global data
+I then created a combined key for global data to better reflect the location
 ``` {r create_global_combined_key}
 global <- global %>% 
   unite("Combined_Key",
@@ -107,14 +112,14 @@ global <- global %>%
         remove = FALSE)
 ```
 
-Get population data from UID Lookup Table
+As population data was missing, I obtained it from UID Look-up Table
 ``` {r uid_lookup}
 uid_lookup_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/UID_ISO_FIPS_LookUp_Table.csv"
 uid <- read_csv(uid_lookup_url) %>%
   select(-c(Lat, Long_, Combined_Key, code3, iso2, iso3))
 ```
 
-Join population data from UID table with global data set
+And then joined population data from UID table with the global data set
 ```{r add_population_global}
 global <- global %>%
   left_join(uid, by = c("Province_State", "Country_Region")) %>%
@@ -123,14 +128,14 @@ global <- global %>%
          deaths, Population, Combined_Key)
 ```
 
-Isolate US population data from UID table 
+I then isolated US population data from UID table 
 ```{r get_population_US}
 US_uid <- uid %>%
   filter(Country_Region == "US") %>%
   select(-c(UID, FIPS))
 ```
 
-Join population data from UID table with US data set
+And added population data from UID table to the US data set
 ```{r add_population_US}
 US <- US %>%
   left_join(uid, by = c("Admin2", "Province_State", "Country_Region")) %>%
@@ -138,9 +143,13 @@ US <- US %>%
   select(Province_State, Country_Region, date, cases,
          deaths, Population, Combined_Key)
 ```
+Now the data is tidied and organized.
 
 ## Visualizing, Analyzing & Modelling Data
-Group Covid cases by location & summarize.
+
+### Question of interest: How do cases and deaths relate to each other over time and by state?
+
+In order to assess this, I grouped Covid cases by location & summarized total cases and deaths.
 ```{r group_cases}
 US_by_state <- US %>%
   group_by(Province_State, Country_Region, date) %>%
@@ -148,6 +157,7 @@ US_by_state <- US %>%
   select(Province_State, Country_Region, date, cases, deaths) %>%
   ungroup()
 ```
+I then used this to aggregate totals for the US overall.
 
 ```{r us_totals}
 US_totals <- US_by_state %>%
@@ -157,7 +167,9 @@ US_totals <- US_by_state %>%
   ungroup()
 ```
 
-Visualize results
+### Cases vs Deaths Over Time
+
+The following graph displays results of cases and deaths over time (scaled logarithmically)
 ```{r visualization_total_cases}
 US_totals %>%
   filter(cases > 0) %>%
@@ -170,34 +182,10 @@ US_totals %>%
   theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) + 
   labs(title = "COVID19 in US", y = NULL)
 ```
+This shows a steep rise in cases initially and then both cases and deaths in the early stages of the pandemic, followed by a gradual rise in both. However,it does not tell us whether or not new cases and deaths are leveling off. That is what we will assess next.
 
-Examine individual states
-```{r visualization_single_state}
-state <- "New York"
-US_by_state %>%
-  filter(Province_State == state) %>%
-  filter(cases > 0) %>%
-  ggplot(aes(x = date, y = cases)) + 
-  geom_line(aes(color = "cases")) + 
-  geom_point(aes(color = "cases")) + 
-  geom_line(aes(y = deaths, color = "deaths")) + 
-  geom_point(aes(y = deaths, color = "deaths")) + 
-  scale_y_log10() + 
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) + 
-  labs(title = str_c("COVID19 in ", state), y = NULL)
-```
-
-Get latest date
-```{r max_date}
-max(US_totals$date)
-```
-
-Get most recent number of deaths
-```{r max_deaths}
-max(US_totals$deaths)
-```
-
-Check if cases have leveled off
+Instead of overall cases and deaths (above), examine NEW cases and deaths over time.
+First, add values for new cases and new deaths
 ```{r add_lag}
 US_by_state <- US_by_state %>%
   mutate(new_cases = cases - lag(cases),
@@ -212,9 +200,9 @@ Look at most recent numbers, prioritizing new cases & new deaths
 tail(US_totals %>% select(new_cases, new_deaths, everything()))
 ```
 
-Visualize new cases and new deaths
+If we visualize new cases and new deaths, we see that it does taper off.
 ```{r visualization_total_new_cases}
-US_totals %>%
+suppressWarnings(print(US_totals %>%
   ggplot(aes(x = date, y = new_cases)) + 
   geom_line(aes(color = "new_cases")) + 
   geom_point(aes(color = "new_cases")) + 
@@ -222,42 +210,44 @@ US_totals %>%
   geom_point(aes(y = new_deaths, color = "new_deaths")) + 
   scale_y_log10() + 
   theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) + 
-  labs(title = "COVID19 in US", y = NULL)
+  labs(title = "COVID19 in US", y = NULL)))
 ```
+Based on this information, with some variation, new cases and deaths started to level off at the end of the first quarter of 2022, reaching an all-time high in early 2022, and remaining steady or decreasing slightly since then.
 
-Visualize new cases and new deaths in an individual state
-```{r visualization_state_new_cases}
-state <- "California"
+### State-by-State Results
+I would like to use the most recent data to assess the relative proportion of cases and deaths in each state.
+
+```{r lastest_values_by_state}
 US_by_state %>%
-  filter(Province_State == state) %>%
-  ggplot(aes(x = date, y = new_cases)) + 
-  geom_line(aes(color = "new_cases")) + 
-  geom_point(aes(color = "new_cases")) + 
-  geom_line(aes(y = new_deaths, color = "new_deaths")) + 
-  geom_point(aes(y = new_deaths, color = "new_deaths")) + 
-  scale_y_log10() + 
-  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90)) + 
-  labs(title = str_c("COVID19 in ", state), y = NULL)
+  filter(date == max(date)) %>%
+  ggplot(aes(x=cases, y=deaths)) + 
+  geom_point() 
 ```
-Adjust for population density in global cases
-``` {r global_population_density}
-global <- global %>%
-  mutate(cases_per_thou = cases*1000/Population, deaths_per_thou = deaths*1000/Population)
+There appears to be clear correlation between cases and deaths, but it isn't perfectly linear, so I wanted to explore this further.
+
+In order to better analyze the state-by-state relationship between cases and detahs, I created a new column for the rate of deaths per case for each state.
+```{r state_most_recent_deaths_per_cases}
+US_current <- US_by_state %>%
+  filter(date == max(date)) %>%
+  mutate(deaths_per_cases = deaths/cases) 
 ```
 
-Model the relationship between deaths and cases
-``` {r model_global_linear_relationship}
-mod <- lm(deaths_per_thou ~ cases_per_thou, data = global)
-summary(mod)
+
+The bar chart below shows the ratio of deaths to cases (from most recent data) sorted by highest proportion of deaths at the top to the lowest.
+```{r state_bar_plot}
+US_current %>%
+  ggplot(aes(fill=deaths_per_cases, y=fct_reorder(Province_State, deaths_per_cases), lab=deaths_per_cases)) + 
+  geom_bar()
 ```
 
-Get largest and smallest cases and deaths per thousand
-``` {r min_max_cases_per_thou}
-today <- as.Date(format(Sys.Date(), "%Y-%m-%d"))
-last_week <- as.Date(today - 5)
-global %>% filter(date == last_week) %>% slice_min(cases_per_thou)
-global %>% filter(date == last_week) %>% slice_max(cases_per_thou)
-global %>% filter(date == last_week) %>% slice_min(deaths_per_thou)
-global %>% filter(date == last_week) %>% slice_max(deaths_per_thou)
-```
+It seems that the Grand Princess (a cruise ship) had by far the largest number of deaths per cases, with the Diamond Princess having the lowest ratio.
+Among the states, Pennsylvania, Oklahoma, Georgia, Michigan, and Arizona had the highest five death rates while Alaska, Hawaii, Utah, Vermont, and New Hampshire had the lowest.
 
+
+## Conclusions
+Death and Case counts appear to have leveled off in the US but are still nowhere near pre-pandemic levels, suggesting that we are in an endemic stage. There is some variation among states for the number of deaths per cases, though further analysis is necessary to explore the causes and contributing factors.
+
+
+## Bias Identification
+
+For more recent COVID-19 data, the largest problem is a likely under-reporting of cases with the wide availability of home testing kits, as people who test positive at home may not be reporting to their local health agencies.
