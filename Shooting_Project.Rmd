@@ -95,7 +95,7 @@ shooting_data <- shooting_data %>%
 ```
 
 ## VISUALIZATION AND ANALYSIS
-### Understanding the Data
+### Total Incidents by Borough 
 To start, I want to see the relationship between location and the total number of incidents. I will use BORO and COUNT(INCIDENT_KEY) for this.
 ``` {r incidents_by_boro}
 # Create new data frame with just the borough name and total number of incidents.
@@ -109,10 +109,11 @@ ggplot(data = numbers_by_boro, aes(Boro, Total)) +
             y = "Total incidents")
 ```
 
-According to this graph, the most incidents occurred in Brooklyn and the Bronx, followed at a distance by Queens, Manhatten, and in the lowest set of incidents, Staten Island. 
+According to this graph, the most incidents occurred in Brooklyn and the Bronx, followed at a distance by Queens, Manhattan, and in the lowest set of incidents, Staten Island. 
 
 Are Brooklyn and the Bronx more dangerous? Or are they simply far more populous? The original data did not include population figures for the five boroughs, so I will need to track this down to analyze further.
 
+### Incidents by Borough Relative to Population
 Per the data available from https://www.citypopulation.de/en/usa/newyorkcity/, as of the 2021 census, the boroughs have the following population:
 ```{r borough_population}
 # Add population data from 2021 census
@@ -129,7 +130,31 @@ ggplot(data = numbers_by_boro, aes(Boro, Shootings_Per_Thousand)) +
 ```
 With this new information, we can see that Bronx and Brooklyn do indeed have the most incidents by population but it is the Bronx rather than Brooklyn with the highest per-capita number of incidents. And due to its low population, Staten Island is pretty similar to Queens in terms of per-capita incidents.
 
+
+### Total Incidents Broken Down by Age, Race and Gender
+In order to break this data down further, I will use a bar plot to show how incidents break down by race of the victim in the five boroughs.
+```{r race_bar_plot}
+ggplot(data=shooting_data, aes(fill=VIC_RACE, x=BORO)) + 
+  geom_bar()
+```
+In all five boroughs, the vast majority of victims are Black (far more than the proportion of NYC's overall Black population), but the discrepancy is especially stark in Brooklyn and Queens where over 75% of victims are Black. The next largest groups are White Hispanic and Black Hispanic. 
+
+In contrast, when breaking victims down by age, we see more consistent proportions across the boroughs.
+```{r age_bar_plot}
+ggplot(data=shooting_data, aes(fill=VIC_AGE_GROUP, x=BORO)) + 
+  geom_bar()
+```
+In all five boroughs, the majority of victims are evenly split between the 18-24 group and the 25-44 group. 
+
+Finally, when breaking down the data by sex, we find that victims are overwhelmingly male. 
+```{r gender_bar_plot}
+ggplot(data=shooting_data, aes(fill=VIC_SEX, x=BORO)) + 
+  geom_bar()
+```
+
 ## CONCLUSION
+Per-capita shootings are highest in the Bronx followed by Brooklyn, but across all five boroughs the victims are disproportionately Black and/or Hispanic, young adults, and male. At first glance, this suggests that most of NYC's shootings may be gang-related, however more data should be collected before concluding this, as the data does not include whether or not victims were associated with any gangs. Aside from this data, more useful data points would be education level, income, and employment status of the victims for futher analysis.
+
 ### FUTURE QUESTIONS
 For future examination of this data set, here are the questions I have:
 
@@ -143,6 +168,6 @@ For future examination of this data set, here are the questions I have:
 ### BIAS IDENTIFICATION
 Potential sources of bias:
 
-1. Personal - as an American who has spent most of my life in urban areas, I assume that the shooting patterns in NYC mirror those in other cities of similar size, hence the future questions pointing to poverty and gang association as likely contributors that could be assessed if the data included education and wealth, though race age and gender can also support or refute this assumption.
+1. Personal - as an American who has spent most of my life in urban areas, I assume that the shooting patterns in NYC mirror those in other cities of similar size, hence the future questions pointing to poverty and gang association as likely contributors that could be assessed if the data included education and wealth, though collecting data on gang affiliation of victims would be useful to confirming or refuting this assumption.
 2. Data collection - There is no available information on how the data is collected (or why, for example, location description is missing in so many incidents despite location being known). If the lack of entry is a choice on the part of the reporting officer (rather than lack of knowledge), then the N/A values in race, age, and sex may be biased.
-3. Data treatment - I made the choice to eliminate the factor of location description as it was missing from so many entries, but it is possible that a trend may have been present there that this choice now obfuscates.
+3. Data treatment - I made the choice to eliminate the factor of location description as it was missing from so many entries, but it is possible that a trend may have been present there that this decision now obfuscates.
